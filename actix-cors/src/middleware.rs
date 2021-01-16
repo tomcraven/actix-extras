@@ -4,15 +4,10 @@ use std::{
     task::{Context, Poll},
 };
 
-use actix_web::{
-    dev::{Service, ServiceRequest, ServiceResponse},
-    error::{Error, Result},
-    http::{
-        header::{self, HeaderValue},
-        Method,
-    },
-    HttpResponse,
-};
+use actix_web::{dev::{Service, ServiceRequest, ServiceResponse}, error::{Error, Result}, http::{
+    header::{self, HeaderValue},
+    Method,
+}, HttpResponse, body};
 use futures_util::future::{ok, Either, FutureExt as _, LocalBoxFuture, Ready};
 use log::debug;
 
@@ -121,13 +116,12 @@ type CorsMiddlewareServiceFuture<B> = Either<
     LocalBoxFuture<'static, Result<ServiceResponse<B>, Error>>,
 >;
 
-impl<S, B> Service for CorsMiddleware<S>
+impl<S, B> Service<ServiceRequest> for CorsMiddleware<S>
 where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
-    B: 'static,
+    B: body::MessageBody + 'static,
 {
-    type Request = ServiceRequest;
     type Response = ServiceResponse<B>;
     type Error = Error;
     type Future = CorsMiddlewareServiceFuture<B>;

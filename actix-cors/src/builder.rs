@@ -1,11 +1,6 @@
 use std::{collections::HashSet, convert::TryInto, iter::FromIterator, rc::Rc};
 
-use actix_web::{
-    dev::{RequestHead, Service, ServiceRequest, ServiceResponse, Transform},
-    error::{Error, Result},
-    http::{self, header::HeaderName, Error as HttpError, HeaderValue, Method, Uri},
-    Either,
-};
+use actix_web::{dev::{RequestHead, Service, ServiceRequest, ServiceResponse, Transform}, error::{Error, Result}, http::{self, header::HeaderName, Error as HttpError, HeaderValue, Method, Uri}, Either, body};
 use futures_util::future::{self, Ready};
 use log::error;
 use once_cell::sync::Lazy;
@@ -483,13 +478,12 @@ impl Default for Cors {
     }
 }
 
-impl<S, B> Transform<S> for Cors
+impl<S, B> Transform<S, ServiceRequest> for Cors
 where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
-    B: 'static,
+    B: body::MessageBody + 'static,
 {
-    type Request = ServiceRequest;
     type Response = ServiceResponse<B>;
     type Error = Error;
     type InitError = ();
@@ -500,7 +494,7 @@ where
         if let Some(ref err) = self.error {
             match err {
                 Either::A(err) => error!("{}", err),
-                Either::B(err) => error!("{}", err),
+                Either::B(err) => error!("{:?}", err),
             }
 
             return future::err(());
